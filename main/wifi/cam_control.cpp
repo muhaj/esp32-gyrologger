@@ -311,7 +311,6 @@ void lanc_listen_task(void* param) {
 void cam_control_task(void* param) {
     int type = gctx.settings_manager->Get("cam_ctrl_type");
     switch (type) {
-        default:
         case 0: {
             vTaskDelete(nullptr);
         } break;
