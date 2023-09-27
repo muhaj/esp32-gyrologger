@@ -22,19 +22,23 @@ extern "C" {
 
 void queryCameraStatus() {
     // This function sends the request to the UART camera to get its status.
-    byte packet[] = {0xEA, 0x02, 0x01, 0x1D}; // The actual command to query the camera status.
+    uint8_t packet[] = {0xEA, 0x02, 0x01, 0x1D}; // The actual command to query the camera status.
     uart_write_bytes(UART_NUM_2, (const char*)packet, sizeof(packet));
 }
 
 void handleUartResponse() {
     // This function handles the response from the UART camera.
-    byte data[128];
-    int len = uart_read_bytes(UART_NUM_2, (uint8_t*)data, sizeof(data) - 1, 100 / portTICK_RATE_MS);
+    uint8_t data[128];
+    int len = uart_read_bytes(UART_NUM_2, data, sizeof(data) - 1, 100 / portTICK_RATE_MS);
+    
     if (len > 0) {
-        if (memcmp(data, (byte[]){0xEA, 0x02, 0x03, 0x9D, 0x00, 0x01}, 6) == 0) {
+        uint8_t reference1[] = {0xEA, 0x02, 0x03, 0x9D, 0x00, 0x01};
+        uint8_t reference2[] = {0xEA, 0x02, 0x03, 0x9D, 0x00, 0x00};
+        
+        if (memcmp(data, reference1, 6) == 0) {
             ESP_LOGI(TAG, "Camera is recording");
             gctx.logger_control.active = true;
-        } else if (memcmp(data, (byte[]){0xEA, 0x02, 0x03, 0x9D, 0x00, 0x00}, 6) == 0) {
+        } else if (memcmp(data, reference2, 6) == 0) {
             ESP_LOGI(TAG, "Camera stopped recording");
             gctx.logger_control.active = false;
         }
