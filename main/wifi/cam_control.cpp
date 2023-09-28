@@ -32,6 +32,8 @@ void getCameraTimestamp() {
     uart_write_bytes(UART_NUM_2, (const char*)packet, sizeof(packet));
 }
 
+int timestamp;
+
 void handleUartResponse() {
     // This function handles the response from the UART camera.
     uint8_t data[128];
