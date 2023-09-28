@@ -32,8 +32,6 @@ void getCameraTimestamp() {
     uart_write_bytes(UART_NUM_2, (const char*)packet, sizeof(packet));
 }
 
-int timestamp;
-
 void handleUartResponse() {
     // This function handles the response from the UART camera.
     uint8_t data[128];
@@ -52,7 +50,7 @@ void handleUartResponse() {
             gctx.logger_control.active = false;
         } else if (memcmp(data, reference3, 6) == 0) {
             // Extract the timestamp from the response
-            int timestamp = int.from_bytes(data[8:12], 'big');
+            int timestamp = (data[8] << 24) | (data[9] << 16) | (data[10] << 8) | data[11];
 
             // Save the timestamp to a file on the SD card
             FILE* f = fopen("/sdcard/camera_timestamp.txt", "w");
