@@ -1,14 +1,12 @@
 #include "cam_control.hpp"
-
 #include "global_context.hpp"
 #include "storage/settings.hpp"
+#include "camera_timestamp_dma.h"  // Include the DMA timestamp functionality
 
 extern "C" {
 #include "esp_log.h"
-
 #include "lwip/err.h"
 #include "lwip/sockets.h"
-
 #include <hal/gpio_types.h>
 #include <driver/gpio.h>
 #include <driver/uart.h>
@@ -37,6 +35,10 @@ void handleUartResponse() {
         
         if (memcmp(data, reference1, 6) == 0) {
             ESP_LOGI(TAG, "Camera is recording");
+            
+            // Fetch the timestamp using DMA from the camera
+            fetchCameraTimestamp();
+            
             gctx.logger_control.active = true;
         } else if (memcmp(data, reference2, 6) == 0) {
             ESP_LOGI(TAG, "Camera stopped recording");
@@ -58,6 +60,9 @@ void uart_camera_task(void* param) {
     ESP_ERROR_CHECK(uart_driver_install(UART_NUM_2, 1024, 0, 0, NULL, 0)); // Install UART driver
     ESP_ERROR_CHECK(uart_param_config(UART_NUM_2, &uart_config)); // Set the UART configuration
     ESP_ERROR_CHECK(uart_set_pin(UART_NUM_2, 17, 16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE)); // Set UART pins
+
+    // Initialize the DMA for fetching the camera timestamp
+    initCameraTimestampDma();
 
     while (1) {
         queryCameraStatus();
