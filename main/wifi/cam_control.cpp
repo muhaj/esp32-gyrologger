@@ -26,12 +26,6 @@ void queryCameraStatus() {
     uart_write_bytes(UART_NUM_2, (const char*)packet, sizeof(packet));
 }
 
-// This function sends the request to the UART camera to get the timestamp of the first frame.
-void getCameraTimestamp() {
-    uint8_t packet[] = {0xEA, 0x02, 0x03, 0x2E, 0x00, 0x00}; // The actual command to get the timestamp of the first frame.
-    uart_write_bytes(UART_NUM_2, (const char*)packet, sizeof(packet));
-}
-
 void handleUartResponse() {
     // This function handles the response from the UART camera.
     uint8_t data[128];
@@ -40,7 +34,6 @@ void handleUartResponse() {
     if (len > 0) {
         uint8_t reference1[] = {0xEA, 0x02, 0x03, 0x9D, 0x00, 0x01};
         uint8_t reference2[] = {0xEA, 0x02, 0x03, 0x9D, 0x00, 0x00};
-        uint8_t reference3[] = {0xEA, 0x02, 0x3B, 0xAE, 0x00, 0x01};
         
         if (memcmp(data, reference1, 6) == 0) {
             ESP_LOGI(TAG, "Camera is recording");
@@ -48,17 +41,6 @@ void handleUartResponse() {
         } else if (memcmp(data, reference2, 6) == 0) {
             ESP_LOGI(TAG, "Camera stopped recording");
             gctx.logger_control.active = false;
-        } else if (memcmp(data, reference3, 6) == 0) {
-            // Extract the timestamp from the response
-            int timestamp = (data[8] << 24) | (data[9] << 16) | (data[10] << 8) | data[11];
-
-            // Save the timestamp to a file on the SD card
-            FILE* f = fopen("/sdcard/camera_timestamp.txt", "w");
-            if (f != NULL) {
-                fprintf(f, "%d", timestamp);
-                fclose(f);
-            } 
-         }
     }
 }
 
@@ -78,7 +60,6 @@ void uart_camera_task(void* param) {
 
     while (1) {
         queryCameraStatus();
-        getCameraTimestamp();
         handleUartResponse();
 
         vTaskDelay(500 / portTICK_PERIOD_MS); // Query every 0.5 second
