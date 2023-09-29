@@ -41,6 +41,7 @@ void handleUartResponse() {
         } else if (memcmp(data, reference2, 6) == 0) {
             ESP_LOGI(TAG, "Camera stopped recording");
             gctx.logger_control.active = false;
+        }
     }
 }
 
