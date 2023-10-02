@@ -1,6 +1,7 @@
 #include "cam_control.hpp"
 #include "global_context.hpp"
 #include "storage/settings.hpp"
+#include <esp_dma.h>
 #include "camera_timestamp_dma.hpp"  // Include the DMA timestamp functionality
 
 extern "C" {
