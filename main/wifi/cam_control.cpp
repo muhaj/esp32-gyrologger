@@ -18,6 +18,21 @@ extern "C" {
 #define TAG "camera_task"
 #define UART_BAUDRATE 115200
 
+void initCameraTimestampDma() {
+    initDma();
+    initTimestampSourceAddress();
+    initTimestampDestinationAddress();
+    initTimestampSize();
+}
+
+// Fetch the timestamp from the camera using DMA
+void fetchCameraTimestamp() {
+    esp_dma_set_source_addr(DMA_CHANNEL_USED, timestamp_source_addr);
+    esp_dma_set_destination_addr(DMA_CHANNEL_USED, timestamp_destination_addr);
+    esp_dma_set_transfer_size(DMA_CHANNEL_USED, timestamp_size);
+    esp_dma_start(DMA_CHANNEL_USED);
+}
+
 void queryCameraStatus() {
     // This function sends the request to the UART camera to get its status.
     uint8_t packet[] = {0xEA, 0x02, 0x01, 0x1D}; // The actual command to query the camera status.
