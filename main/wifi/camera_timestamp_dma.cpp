@@ -16,7 +16,7 @@ extern "C" {
 static uint8_t* timestamp_source_addr;
 
 // The destination address of the timestamp data
-static uint8_t* timestamp_destination_addr;
+static uint8_t timestamp_destination_addr[sizeof(uint32_t)];
 
 // The size of the timestamp data
 static size_t timestamp_size;
