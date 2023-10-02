@@ -1,4 +1,4 @@
-#include "cam_control.hpp"
+p#include "cam_control.hpp"
 #include "global_context.hpp"
 #include "storage/settings.hpp"
 #include "camera_timestamp_dma.hpp"  // Include the DMA timestamp functionality
@@ -10,7 +10,7 @@ extern "C" {
 #include <hal/gpio_types.h>
 #include <driver/gpio.h>
 #include <driver/uart.h>
-#include <driver/dma.h>
+#include <driver/esp_mm.h>
 }
 
 #include <string>
