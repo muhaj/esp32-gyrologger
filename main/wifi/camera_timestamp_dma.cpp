@@ -2,6 +2,7 @@
 extern "C" {
 #include <esp_log.h>
 #include <driver/uart.h>
+#include <driver/dma.h>
 }
 
 #include <cstring>
