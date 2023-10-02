@@ -10,6 +10,7 @@ extern "C" {
 #include <hal/gpio_types.h>
 #include <driver/gpio.h>
 #include <driver/uart.h>
+#include <driver/dma.h>
 }
 
 #include <string>
