@@ -1,4 +1,4 @@
-#include "camera_timestamp_dma.h"
+#include "camera_timestamp_dma.hpp"
 extern "C" {
 #include "esp_dma.h"
 #include <esp_log.h>
