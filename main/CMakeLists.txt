@@ -22,5 +22,4 @@ idf_component_register(
         "misc/display/src/display.cpp"
         "misc/battery.cpp"
     INCLUDE_DIRS "."
-    include_directories(IDF_INCLUDE_DIRS)
     LDFRAGMENTS "linker.lf")
