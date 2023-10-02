@@ -5,7 +5,6 @@
 
 extern "C" {
 #include "esp_log.h"
-#include <esp_dma.h>
 #include "lwip/err.h"
 #include "lwip/sockets.h"
 #include <hal/gpio_types.h>
