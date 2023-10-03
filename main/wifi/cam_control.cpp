@@ -9,7 +9,6 @@ extern "C" {
 #include <hal/gpio_types.h>
 #include <driver/gpio.h>
 #include <driver/uart.h>
-#include <driver/esp_mm.h>
 }
 
 #include <string>
