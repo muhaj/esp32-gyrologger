@@ -1,4 +1,4 @@
-p#include "cam_control.hpp"
+#include "cam_control.hpp"
 #include "global_context.hpp"
 #include "storage/settings.hpp"
 
