@@ -17,28 +17,46 @@ extern "C" {
 #define TAG "camera_task"
 #define UART_BAUDRATE 115200
 
+// The global variable to store the timestamp
+int camera_timestamp_value = 0;
+// A flag to check if the timestamp has been retrieved
+bool camera_timestamp_retrieved = false;
+
 void queryCameraStatus() {
     // This function sends the request to the UART camera to get its status.
     uint8_t packet[] = {0xEA, 0x02, 0x01, 0x1D}; // The actual command to query the camera status.
     uart_write_bytes(UART_NUM_2, (const char*)packet, sizeof(packet));
 }
 
+void getCameraTimestamp() {
+    uint8_t packet[] = {0xEA, 0x02, 0x03, 0x2E, 0x00, 0x00}; // The actual command to get the timestamp of the first frame.
+    uart_write_bytes(UART_NUM_2, (const char*)packet, sizeof(packet));
+}
+
 void handleUartResponse() {
-    // This function handles the response from the UART camera.
     uint8_t data[128];
     int len = uart_read_bytes(UART_NUM_2, data, sizeof(data) - 1, 100 / portTICK_RATE_MS);
     
     if (len > 0) {
         uint8_t reference1[] = {0xEA, 0x02, 0x03, 0x9D, 0x00, 0x01};
         uint8_t reference2[] = {0xEA, 0x02, 0x03, 0x9D, 0x00, 0x00};
+        uint8_t reference3[] = {0xEA, 0x02, 0x3B, 0xAE, 0x00, 0x01};
         
         if (memcmp(data, reference1, 6) == 0) {
             ESP_LOGI(TAG, "Camera is recording");
-            
             gctx.logger_control.active = true;
         } else if (memcmp(data, reference2, 6) == 0) {
             ESP_LOGI(TAG, "Camera stopped recording");
             gctx.logger_control.active = false;
+        } else if (memcmp(data, reference3, 6) == 0) {
+            // Extract the timestamp from the response
+            int timestamp = (data[8] << 24) | (data[9] << 16) | (data[10] << 8) | data[11];
+            
+            // Store in the global variable for other tasks/files to access
+            camera_timestamp_value = timestamp;
+
+            // Signal that the timestamp has been successfully retrieved
+            camera_timestamp_retrieved = true;
         }
     }
 }
@@ -53,13 +71,24 @@ void uart_camera_task(void* param) {
         .source_clk = UART_SCLK_APB,
     };
 
-    ESP_ERROR_CHECK(uart_driver_install(UART_NUM_2, 1024, 0, 0, NULL, 0)); // Install UART driver
-    ESP_ERROR_CHECK(uart_param_config(UART_NUM_2, &uart_config)); // Set the UART configuration
-    ESP_ERROR_CHECK(uart_set_pin(UART_NUM_2, 17, 16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE)); // Set UART pins
+    ESP_ERROR_CHECK(uart_driver_install(UART_NUM_2, 1024, 0, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_param_config(UART_NUM_2, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin(UART_NUM_2, 17, 16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+
+    bool timestamp_fetched = false;
 
     while (1) {
         queryCameraStatus();
+        
+        if (!timestamp_fetched) {
+            getCameraTimestamp();
+        }
+        
         handleUartResponse();
+
+        if (camera_timestamp_retrieved) {
+            timestamp_fetched = true;
+        }
 
         vTaskDelay(500 / portTICK_PERIOD_MS); // Query every 0.5 second
     }
