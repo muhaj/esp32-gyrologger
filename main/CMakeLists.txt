@@ -18,7 +18,6 @@ idf_component_register(
         "wifi/wifi.cpp" 
         "wifi/random_names.cpp" 
         "wifi/cam_control.cpp" 
-        "wifi/camera_timestamp_dma.cpp"
         "misc/led_strip/led_strip.c"
         "misc/display/src/display.cpp"
         "misc/battery.cpp"
