@@ -55,6 +55,18 @@ void handleUartResponse() {
             // Store in the global variable for other tasks/files to access
             camera_timestamp_value = timestamp;
 
+            // Assuming filename starts at data[11] and is 32 bytes long.
+            std::string video_filename_str = std::string((char*)data + 11, 32);
+
+            size_t dotPos = gctx.video_filename.find_last_of(".");
+            if (dotPos != std::string::npos) {
+            gctx.video_filename.replace(dotPos, gctx.video_filename.size() - dotPos, ".gcsv");
+            }
+
+            // Save the filename to the global variable
+            video_filename = video_filename_str;
+            ESP_LOGI(TAG, "Video filename: %s", video_filename.c_str());
+
             // Signal that the timestamp has been successfully retrieved
             camera_timestamp_retrieved = true;
         }
