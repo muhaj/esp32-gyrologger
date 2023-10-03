@@ -21,6 +21,8 @@ extern "C" {
 int camera_timestamp_value = 0;
 // A flag to check if the timestamp has been retrieved
 bool camera_timestamp_retrieved = false;
+// A Variable to store video filename
+std::string video_filename;
 
 void queryCameraStatus() {
     // This function sends the request to the UART camera to get its status.
