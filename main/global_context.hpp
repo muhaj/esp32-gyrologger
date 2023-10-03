@@ -9,6 +9,8 @@ extern "C" {
 #include <freertos/semphr.h>
 }
 
+#include <string>
+
 #define kBlockSize 256
 
 class GyroRing;
@@ -38,6 +40,8 @@ typedef struct {
     double accel_sr;
 
     FilterSettings filter_settings;
+
+    std::string video_filename;
 
     volatile bool terminate_for_update;
     struct {
