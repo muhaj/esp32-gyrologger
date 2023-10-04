@@ -29,6 +29,8 @@ extern "C" {
 
 #include "storage/filenames.hpp"
 
+std::string get_camera_filename();
+
 static esp_err_t find_good_filename(char *buf) {
     DIR *dp;
     struct dirent *ep;
