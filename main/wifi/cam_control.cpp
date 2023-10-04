@@ -50,6 +50,7 @@ void handleUartResponse() {
         } else if (memcmp(data, reference2, 6) == 0) {
             ESP_LOGI(TAG, "Camera stopped recording");
             gctx.logger_control.active = false;
+            video_filename.clear();  // Clear the video filename
         } else if (memcmp(data, reference3, 6) == 0) {
             // Extract the timestamp from the response
             int timestamp = (data[8] << 24) | (data[9] << 16) | (data[10] << 8) | data[11];
