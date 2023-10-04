@@ -61,9 +61,9 @@ void handleUartResponse() {
             // Assuming filename starts at data[11] and is 32 bytes long.
             std::string video_filename_str = std::string((char*)data + 11, 32);
 
-            size_t dotPos = gctx.video_filename.find_last_of(".");
+            size_t dotPos = video_filename_str.find_last_of(".");   
             if (dotPos != std::string::npos) {
-            gctx.video_filename.replace(dotPos, gctx.video_filename.size() - dotPos, ".gcsv");
+                 video_filename_str.replace(dotPos, video_filename_str.size() - dotPos, ".gcsv");   
             }
 
             // Save the filename to the global variable
