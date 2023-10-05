@@ -112,7 +112,8 @@ void logger_task(void *params_pvoid) {
 
                 if (!gctx.logger_control.file_name) {
                     if (gctx.video_filename.empty()) {
-                        index_to_filename(file_name_buf);
+                        int index = 0;  // or replace 0 with the appropriate index value
+                        index_to_filename(index, file_name_buf);
                     } else {
                         strncpy(file_name_buf, gctx.video_filename.c_str(), sizeof(file_name_buf) - 1);
                         file_name_buf[sizeof(file_name_buf) - 1] = '\0';  // Null-terminate in case of overflow
@@ -132,7 +133,7 @@ void logger_task(void *params_pvoid) {
                     csv_writer << "time,gx,gy,gz,ax,ay,az" << std::endl;
                 }
 
-                for (auto& quat : std::begin(work_result.quats), std::end(work_result.quats)) {
+                for (auto& quat : work_result.quats) {
                     float roll, pitch, yaw;
                     quat.toEulerAngles(roll, pitch, yaw);
 
