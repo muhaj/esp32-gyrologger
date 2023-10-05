@@ -57,14 +57,14 @@ static esp_err_t set_gyro_filename_from_camera(char *buf) {
 static esp_err_t delete_oldest() {
     DIR *dp;
     struct dirent *ep;
-    dp = opendir("/spiflash");
+    dp = opendir("/sdcard");
     std::string file_to_delete{};
     int min_idx = std::numeric_limits<int>::max();
     if (dp != NULL) {
         while ((ep = readdir(dp))) {
             std::string filename = ep->d_name;
             if (!validate_file_name(filename)) {
-                unlink(("/spiflash/" + filename).c_str());
+                unlink(("/sdcard/" + filename).c_str());
                 continue;
             }
             int idx = ((filename[1] - 'A') * 26 + (filename[2] - 'A')) * 100000 +
@@ -125,7 +125,8 @@ void logger_task(void *params_pvoid) {
                 }
 
                 // CSV writing logic
-                csv_writer.open(gctx.logger_control.file_name, std::ios::app);  // Append mode
+                csv_writer.open(std::string("/sdcard/") + gctx.logger_control.file_name, std::ios::app);
+
 
                 // Write the header row only if it's a new file
                 if (csv_writer.tellp() == 0) {
