@@ -112,7 +112,7 @@ void logger_task(void *params_pvoid) {
 
                 if (!gctx.logger_control.file_name) {
                     if (gctx.video_filename.empty()) {
-                        find_good_filename(file_name_buf);
+                        index_to_filename(file_name_buf);
                     } else {
                         strncpy(file_name_buf, gctx.video_filename.c_str(), sizeof(file_name_buf) - 1);
                         file_name_buf[sizeof(file_name_buf) - 1] = '\0';  // Null-terminate in case of overflow
