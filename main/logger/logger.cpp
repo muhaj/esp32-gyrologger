@@ -31,38 +31,26 @@ extern "C" {
 
 std::string get_camera_filename();
 
-static esp_err_t find_good_filename(char *buf) {
-    DIR *dp;
-    struct dirent *ep;
-    dp = opendir("/spiflash");
-    int max_idx = 0;
-    if (dp != NULL) {
-        while ((ep = readdir(dp))) {
-            std::string filename = ep->d_name;
-            int idx = filename_to_index(filename);
-            if (idx < 0) {
-                unlink(("/spiflash/" + filename).c_str());
-                continue;
-            }
-            max_idx = std::max(idx, max_idx);
-        }
-        (void)closedir(dp);
-    } else {
-        ESP_LOGE(TAG, "Couldn't open the directory");
+static esp_err_t set_gyro_filename_from_camera(char *buf) {
+    std::string camera_filename = get_camera_filename();
+
+    if(camera_filename.empty()) {
+        ESP_LOGE(TAG, "Couldn't get camera filename");
         return ESP_FAIL;
     }
-    static constexpr char templ[] = "/spiflash/L%c%c%05d.bin";
-    int epoch = gctx.settings_manager->Get("file_epoch");
-    if (epoch < max_idx / 100000) {
-        epoch = max_idx / 100000;
-    }
 
-    if (epoch != max_idx / 100000) {
-        ESP_LOGW(TAG, "%d != %d", epoch, max_idx / 100000);
-        index_to_filename(100000 * epoch + 1, buf);
-    } else {
-        index_to_filename(100000 * epoch + (max_idx % 100000) + 1, buf);
+    // Add a prefix or suffix if needed. For example, adding "_gyro" before the file extension.
+    std::size_t last_dot = camera_filename.find_last_of(".");
+    if(last_dot == std::string::npos) {
+        ESP_LOGE(TAG, "Unexpected camera filename format");
+        return ESP_FAIL;
     }
+    
+    std::string gyro_filename = camera_filename.substr(0, last_dot) + "_gyro" + camera_filename.substr(last_dot);
+    
+    strncpy(buf, gyro_filename.c_str(), sizeof(buf) - 1);  // copy the new filename to the buffer
+    buf[sizeof(buf) - 1] = '\0';  // ensure null termination
+
     return ESP_OK;
 }
 
@@ -102,11 +90,9 @@ int esp_vfs_fsync(int fd);
 
 static char file_name_buf[30];
 void logger_task(void *params_pvoid) {
-    FILE *f = NULL;
-
-    Coder encoder(kBlockSize, gctx.settings_manager->Get("fixed_qp"));
-
+    std::ofstream csv_writer; // Declare outside the loop for efficiency
     TickType_t prev_dump = xTaskGetTickCount();
+
     for (int i = 0;; ++i) {
         if (gctx.terminate_for_update) {
             ESP_LOGI(TAG, "Terminating for SW update");
@@ -121,91 +107,45 @@ void logger_task(void *params_pvoid) {
 
         if (xSemaphoreTake(gctx.logger_control.mutex, portMAX_DELAY)) {
             gctx.logger_control.last_block_time_us = esp_timer_get_time();
+
             if (gctx.logger_control.active) {
                 gctx.logger_control.busy = true;
-                gctx.logger_control.total_samples_written += kBlockSize;
-                xSemaphoreGive(gctx.logger_control.mutex);
 
                 if (!gctx.logger_control.file_name) {
-                    find_good_filename(file_name_buf);
-                    xSemaphoreTake(gctx.logger_control.mutex, portMAX_DELAY);
+                    if (gctx.video_filename.empty()) {
+                        find_good_filename(file_name_buf);
+                    } else {
+                        strncpy(file_name_buf, gctx.video_filename.c_str(), sizeof(file_name_buf) - 1);
+                        file_name_buf[sizeof(file_name_buf) - 1] = '\0';  // Null-terminate in case of overflow
+                    }
+
                     gctx.logger_control.file_name = file_name_buf;
-                    gctx.logger_control.total_samples_written = 0;
-                    gctx.logger_control.log_start_ts_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
-                    gctx.logger_control.avg_logging_rate_bytes_min = 0;
-                    xSemaphoreGive(gctx.logger_control.mutex);
+
                     ESP_LOGI(TAG, "Using filename: %s", file_name_buf);
-                    encoder.reset();
                 }
 
-                if (!f) {
-                    ESP_LOGI(TAG, "Opening file %s", gctx.logger_control.file_name);
-                    f = fopen(gctx.logger_control.file_name, "ab");
+                // CSV writing logic
+                csv_writer.open(gctx.logger_control.file_name, std::ios::app);  // Append mode
 
-                    if (!f) {
-                        ESP_LOGE(TAG, "Cannot open file");
-                        gctx.logger_control.storage_failure = true;
-                    }
+                // Write the header row only if it's a new file
+                if (csv_writer.tellp() == 0) {
+                    csv_writer << "time,gx,gy,gz,ax,ay,az" << std::endl;
                 }
 
-                auto tmp = encoder.encode_block(work_result.quats);
+                for (auto& quat : work_result.quats) {
+                    float roll, pitch, yaw;
+                    quat.toEulerAngles(roll, pitch, yaw);
 
-                auto &bytes_to_write = tmp.first;
-                auto &max_error_rad = tmp.second;
-
-                auto buf_ptr = bytes_to_write.begin();
-                const auto buf_end_ptr = bytes_to_write.end();
-                int out_buf_size = bytes_to_write.size();
-
-                while (buf_ptr != buf_end_ptr) {
-                    int written = fwrite(&(*buf_ptr), 1,
-                                         std::min(static_cast<size_t>(16),
-                                                  static_cast<size_t>(buf_end_ptr - buf_ptr)),
-                                         f);
-                    buf_ptr += written;
-                    if (!written) {
-                        vTaskDelay(1);
-                    }
-                }
-                auto cur_dump = xTaskGetTickCount();
-                double elapsed = (xTaskGetTickCount() - prev_dump) * 1.0 / configTICK_RATE_HZ;
-                prev_dump = cur_dump;
-                ESP_LOGI(TAG, "%d bytes, capacity = %.2f h, max_error = % .4f ", (int)out_buf_size,
-                         3000000 / (out_buf_size / elapsed) / 60 / 60,
-                         float(max_error_rad) * 180 / M_PI);
-
-                // Dump accelerometer data
-                if (work_result.accels_len) {
-                    uint8_t accel_count = work_result.accels_len / 3;
-                    fwrite(&accel_count, 1, 1, f);
-                    fwrite(work_result.accels, 2, work_result.accels_len, f);
-                    ESP_LOGI(TAG, "%d bytes of accelerometer data", accel_count * 6);
+                    csv_writer << xTaskGetTickCount() * portTICK_PERIOD_MS << "," << roll << "," << pitch << "," << yaw << "," << work_result.accels[0] << "," << work_result.accels[1] << "," << work_result.accels[2] << std::endl;
                 }
 
+                csv_writer.close();
             } else {
-                if (f) {
-                    fflush(f);
-                    fclose(f);
-                    f = NULL;
-                }
                 gctx.logger_control.busy = false;
                 gctx.logger_control.file_name = NULL;
-                xSemaphoreGive(gctx.logger_control.mutex);
             }
         }
 
-        static int flush_gate = 0;
-        if (f && (++flush_gate) % 20 == 0) {
-            if (xSemaphoreTake(gctx.logger_control.mutex, portMAX_DELAY)) {
-                gctx.logger_control.total_bytes_written = ftell(f);
-                int log_duration_ms =
-                    xTaskGetTickCount() * portTICK_PERIOD_MS - gctx.logger_control.log_start_ts_ms;
-                gctx.logger_control.avg_logging_rate_bytes_min =
-                    gctx.logger_control.total_bytes_written * 1000LL * 60LL / log_duration_ms;
-                xSemaphoreGive(gctx.logger_control.mutex);
-            }
-            esp_vfs_fsync(fileno(f));
-        }
         auto [free, total] = get_free_space_kb();
         if (free < 90 && free > 0) {
             delete_oldest();
