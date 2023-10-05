@@ -132,7 +132,7 @@ void logger_task(void *params_pvoid) {
                     csv_writer << "time,gx,gy,gz,ax,ay,az" << std::endl;
                 }
 
-                for (auto& quat : work_result.quats) {
+                for (auto& quat : std::begin(work_result.quats), std::end(work_result.quats)) {
                     float roll, pitch, yaw;
                     quat.toEulerAngles(roll, pitch, yaw);
 
