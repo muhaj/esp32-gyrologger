@@ -1,9 +1,10 @@
 #include "lib/compression.hpp"
 #include <emscripten.h>
 #include <sys/types.h>
+#include <fstream>
+#include <iostream>
 
 std::vector<uint8_t> input;
-std::vector<int> output;
 bool fail = false;
 static constexpr int kMaxOutputSize = 1024 * 1024;
 static constexpr int kBlockSize = 256;
@@ -27,15 +28,16 @@ uint8_t* allocate_input(int size) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-int get_output_size() { return output.size(); }
+int decode(const char* filename) {  // Receive filename as a parameter
+    // Open file for writing
+    std::ofstream outFile;
+    outFile.open(filename, std::ios::out | std::ios::app);  // Use the provided filename
+    if(!outFile) {
+        std::cerr << "File opening failed" << std::endl;
+        return -1;  // or other error handling
+    }
 
-EMSCRIPTEN_KEEPALIVE
-int* get_output_ptr() { return output.data(); }
-
-EMSCRIPTEN_KEEPALIVE
-int decode() {
-    output.clear();
-    while (pos < input.size() && output.size() <= 1024) {
+    while (pos < input.size()) {
         auto [decoded_bytes, dquats, scale] =
             decoder.decode_block(input.data() + pos, input.size() - pos);
         if (fail || !decoded_bytes) break;
@@ -55,17 +57,21 @@ int decode() {
             if (ztime != 0) {
                 double scale = sample_rate * gscale;
                 double ascale = 10000;
-                output.push_back(ztime);
-                output.push_back((int)(double(rv.x) * scale));
-                output.push_back((int)(double(rv.y) * scale));
-                output.push_back((int)(double(rv.z) * scale));
-                output.push_back((int)(accel_data[0 + 3 * i_lim]));
-                output.push_back((int)(accel_data[1 + 3 * i_lim]));
-                output.push_back((int)(accel_data[2 + 3 * i_lim]));
+                outFile << ztime << ","
+                        << (int)(double(rv.x) * scale) << ","
+                        << (int)(double(rv.y) * scale) << ","
+                        << (int)(double(rv.z) * scale) << ","
+                        << (int)(accel_data[0 + 3 * i_lim]) << ","
+                        << (int)(accel_data[1 + 3 * i_lim]) << ","
+                        << (int)(accel_data[2 + 3 * i_lim]) << std::endl;
             }
             ztime++;
         }
     }
+    
+    // Close file when done
+    outFile.close();
+
     return 0;
 }
 
