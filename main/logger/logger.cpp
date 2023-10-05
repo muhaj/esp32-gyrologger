@@ -71,7 +71,7 @@ static esp_err_t delete_oldest() {
                       std::stoi(filename.substr(3, 5));
             if (idx < min_idx) {
                 min_idx = idx;
-                file_to_delete = "/spiflash/" + filename;
+                file_to_delete = "/sdcard/" + filename;
             }
         }
         (void)closedir(dp);
