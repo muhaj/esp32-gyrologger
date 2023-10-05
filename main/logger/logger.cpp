@@ -19,7 +19,6 @@ extern "C" {
 
 #include <fstream>
 
-#include "compression/lib/compression.hpp"
 #include "filters/gyro_ring.hpp"
 #include "storage/storage_fat.hpp"
 
