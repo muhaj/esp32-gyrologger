@@ -142,7 +142,7 @@ void logger_task(void *params_pvoid) {
 
                 if (!gctx.logger_control.file_name) {
                     std::string sdCardFileName = "/sdcard/" + video_filename;  // Use video_filename from cam_control.hpp
-                    gctx.logger_control.file_name = sdCardFileName.c_str();
+                    gctx.logger_control.file_name = (char*)sdCardFileName.c_str();
                 }
 
                 if (!f) {
