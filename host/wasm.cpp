@@ -18,6 +18,10 @@ static quat::quat prev_quat(quat::base_type{1}, {}, {}, {});
 static Coder decoder(kBlockSize, 22);
 
 extern "C" {
+    int decode(const char* filename);
+}
+
+extern "C" {
 EMSCRIPTEN_KEEPALIVE
 uint8_t* allocate_input(int size) {
     input.resize(size);
