@@ -1,25 +1,19 @@
 #include "lib/compression.hpp"
 #include <emscripten.h>
 #include <sys/types.h>
-#include <fstream>
-#include <iostream>
-#include "wifi/cam_control.hpp"
 
 std::vector<uint8_t> input;
+std::vector<int> output;
 bool fail = false;
 static constexpr int kMaxOutputSize = 1024 * 1024;
 static constexpr int kBlockSize = 256;
-static constexpr double sample_rate = 1.0 / 0.00125;
+static constexpr double sample_rate = 1.0 / 0.00180;
 static constexpr double gscale = 1 / 0.00053263221;
 
 static int ztime = 0;
 static int pos = 0;
 static quat::quat prev_quat(quat::base_type{1}, {}, {}, {});
 static Coder decoder(kBlockSize, 22);
-
-extern "C" {
-    int decode(const char* filename);
-}
 
 extern "C" {
 EMSCRIPTEN_KEEPALIVE
@@ -33,16 +27,15 @@ uint8_t* allocate_input(int size) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-int decode(const char* filename) {  // Receive filename as a parameter
-    // Open file for writing
-    std::ofstream outFile;
-    outFile.open(filename, std::ios::out | std::ios::app);  // Use the provided filename
-    if(!outFile) {
-        std::cerr << "File opening failed" << std::endl;
-        return -1;  // or other error handling
-    }
+int get_output_size() { return output.size(); }
 
-    while (pos < input.size()) {
+EMSCRIPTEN_KEEPALIVE
+int* get_output_ptr() { return output.data(); }
+
+EMSCRIPTEN_KEEPALIVE
+int decode() {
+    output.clear();
+    while (pos < input.size() && output.size() <= 1024) {
         auto [decoded_bytes, dquats, scale] =
             decoder.decode_block(input.data() + pos, input.size() - pos);
         if (fail || !decoded_bytes) break;
@@ -62,21 +55,17 @@ int decode(const char* filename) {  // Receive filename as a parameter
             if (ztime != 0) {
                 double scale = sample_rate * gscale;
                 double ascale = 10000;
-                outFile << ztime << ","
-                        << (int)(double(rv.x) * scale) << ","
-                        << (int)(double(rv.y) * scale) << ","
-                        << (int)(double(rv.z) * scale) << ","
-                        << (int)(accel_data[0 + 3 * i_lim]) << ","
-                        << (int)(accel_data[1 + 3 * i_lim]) << ","
-                        << (int)(accel_data[2 + 3 * i_lim]) << std::endl;
+                output.push_back(ztime);
+                output.push_back((int)(double(rv.x) * scale));
+                output.push_back((int)(double(rv.y) * scale));
+                output.push_back((int)(double(rv.z) * scale));
+                output.push_back((int)(accel_data[0 + 3 * i_lim]));
+                output.push_back((int)(accel_data[1 + 3 * i_lim]));
+                output.push_back((int)(accel_data[2 + 3 * i_lim]));
             }
             ztime++;
         }
     }
-    
-    // Close file when done
-    outFile.close();
-
     return 0;
 }
 
