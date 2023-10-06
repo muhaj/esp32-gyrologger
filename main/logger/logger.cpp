@@ -29,6 +29,8 @@ extern "C" {
 
 #include "storage/filenames.hpp"
 
+extern std::string video_filename;
+
 // Function to get camera timestamp from cam_control.cpp
 extern int get_camera_timestamp();
 
