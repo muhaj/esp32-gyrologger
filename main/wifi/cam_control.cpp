@@ -36,44 +36,41 @@ void getCameraTimestamp() {
 }
 
 void handleUartResponse() {
-    uint8_t data[128];
-    int len = uart_read_bytes(UART_NUM_2, data, sizeof(data) - 1, 100 / portTICK_RATE_MS);
-    
-    if (len > 0) {
-        uint8_t reference1[] = {0xEA, 0x02, 0x03, 0x9D, 0x00, 0x01};
-        uint8_t reference2[] = {0xEA, 0x02, 0x03, 0x9D, 0x00, 0x00};
-        uint8_t reference3[] = {0xEA, 0x02, 0x3B, 0xAE, 0x00, 0x01};
-        
-        if (memcmp(data, reference1, 6) == 0) {
-            ESP_LOGI(TAG, "Camera is recording");
-            gctx.logger_control.active = true;
-        } else if (memcmp(data, reference2, 6) == 0) {
-            ESP_LOGI(TAG, "Camera stopped recording");
-            gctx.logger_control.active = false;
-            video_filename.clear();  // Clear the video filename
-        } else if (memcmp(data, reference3, 6) == 0) {
-            // Extract the timestamp from the response
-            int timestamp = (data[8] << 24) | (data[9] << 16) | (data[10] << 8) | data[11];
-            
-            // Store in the global variable for other tasks/files to access
-            camera_timestamp_value = timestamp;
+  uint8_t data[128];
+  int len = uart_read_bytes(UART_NUM_2, data, sizeof(data) - 1, 100 / portTICK_RATE_MS);
+   
+  if (len > 0) {
+    uint8_t reference1[] = {0xEA, 0x02, 0x03, 0x9D, 0x00, 0x01};
+    uint8_t reference2[] = {0xEA, 0x02, 0x03, 0x9D, 0x00, 0x00};
+    uint8_t reference3[] = {0xEA, 0x02, 0x3B, 0xAE, 0x00, 0x01};
+     
+    if (memcmp(data, reference1, 6) == 0) {
+      ESP_LOGI(TAG, "Camera is recording");
+      gctx.logger_control.active = true;
+    } else if (memcmp(data, reference2, 6) == 0) {
+      ESP_LOGI(TAG, "Camera stopped recording");
+      gctx.logger_control.active = false;
+      video_filename.clear(); // Clear the video filename
+    } else if (memcmp(data, reference3, 6) == 0) {
+      // Extract the timestamp from the response
+      int timestamp = (data[8] << 24) | (data[9] << 16) | (data[10] << 8) | data[11];
+       
+      // Assuming filename starts at data[12] and is 32 bytes long.
+      std::string video_filename_str = std::string((char*)data + 12, 32);
 
-            // Assuming filename starts at data[11] and is 32 bytes long.
-            std::string video_filename_str = std::string((char*)data + 11, 32);
+      size_t dotPos = video_filename_str.find_last_of(".");  
+      if (dotPos != std::string::npos) {
+         video_filename_str.replace(dotPos, 4, ".gcsv");  // Change 4 to the length of the new extension including the dot
+      }
 
-            size_t dotPos = video_filename_str.find_last_of(".");   
-            if (dotPos != std::string::npos) {
-                 video_filename_str.replace(dotPos, video_filename_str.size() - dotPos, ".gcsv");   
-            }
+      // Save the filename to the global variable
+      video_filename = video_filename_str;
+      ESP_LOGI(TAG, "Video filename: %s", video_filename.c_str());
 
-            // Save the filename to the global variable
-            video_filename = video_filename_str;
-            ESP_LOGI(TAG, "Video filename: %s", video_filename.c_str());
-
-            // Signal that the timestamp has been successfully retrieved
-            camera_timestamp_retrieved = true;
-        }
+      // Signal that the timestamp has been successfully retrieved
+      camera_timestamp_retrieved = true;
     }
+  }
 }
 
 void uart_camera_task(void* param) {
