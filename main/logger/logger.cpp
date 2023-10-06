@@ -17,7 +17,7 @@ extern "C" {
 }
 
 #include <cstring>
-
+#include <algorithm>
 #include <fstream>
 
 #include "filters/gyro_ring.hpp"
