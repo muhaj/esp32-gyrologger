@@ -36,7 +36,13 @@ extern int get_camera_timestamp();
 
 // Global variables from decoding logic
 std::vector<uint8_t> input;
+std::vector<int> output;
 bool fail = false;
+static constexpr int kMaxOutputSize = 1024 * 1024;
+static constexpr int kBlockSize = 256;
+static constexpr double sample_rate = 1.0 / 0.00180;
+static constexpr double gscale = 1 / 0.00053263221;
+
 static int ztime = 0;
 static int pos = 0;
 static quat::quat prev_quat(quat::base_type{1}, {}, {}, {});
