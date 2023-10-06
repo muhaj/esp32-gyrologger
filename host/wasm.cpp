@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <fstream>
 #include <iostream>
+#include "wifi/cam_control.hpp"
 
 std::vector<uint8_t> input;
 bool fail = false;
