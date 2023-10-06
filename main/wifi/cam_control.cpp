@@ -54,6 +54,9 @@ void handleUartResponse() {
     } else if (memcmp(data, reference3, 6) == 0) {
       // Extract the timestamp from the response
       int timestamp = (data[8] << 24) | (data[9] << 16) | (data[10] << 8) | data[11];
+
+      // Store in the global variable for other tasks/files to access
+      camera_timestamp_value = timestamp;
        
       // Assuming filename starts at data[12] and is 32 bytes long.
       std::string video_filename_str = std::string((char*)data + 12, 32);
