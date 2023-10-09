@@ -2,7 +2,7 @@
 
 #include "logger.hpp"
 #include "wifi/cam_control.hpp"
-#include "wifi/global_context.hpp"
+#include "main/global_context.hpp"
 extern "C" {
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
