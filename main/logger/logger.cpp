@@ -2,6 +2,7 @@
 
 #include "logger.hpp"
 #include "wifi/cam_control.hpp"
+#include "global_context.hpp"
 extern "C" {
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -23,8 +24,6 @@ extern "C" {
 
 #include "filters/gyro_ring.hpp"
 #include "storage/storage_fat.hpp"
-
-#include "global_context.hpp"
 
 #define TAG "logger"
 
