@@ -118,6 +118,7 @@ int esp_vfs_fsync(int fd);
 
 static char file_name_buf[30];
 void logger_task(void *params_pvoid) {
+    char buffer[kBlockSize];
     FILE *f = NULL;
 
     TickType_t prev_dump = xTaskGetTickCount();
