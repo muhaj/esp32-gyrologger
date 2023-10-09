@@ -7,6 +7,8 @@ extern "C" {
 #include <freertos/task.h>
 #include <freertos/queue.h>
 #include <freertos/semphr.h>
+#include <algorithm>
+#include <iterator>
 }
 
 #include <string>
