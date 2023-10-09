@@ -19,6 +19,7 @@ extern "C" {
 #include <cstring>
 #include <algorithm>
 #include <fstream>
+#include <iterator>
 
 #include "filters/gyro_ring.hpp"
 #include "storage/storage_fat.hpp"
@@ -163,7 +164,7 @@ void logger_task(void *params_pvoid) {
                 }
 
                 int i = 0;
-                for (auto& q : work_result.quats) {
+                for (auto& q : std::begin(work_result.quats), std::end(work_result.quats)) {
                     int i_lim = std::min(i++ / 55, work_result.accels_len / 3 - 1);
                     quat::vec rv = (q.conj() * prev_quat).axis_angle();
                     prev_quat = q;
