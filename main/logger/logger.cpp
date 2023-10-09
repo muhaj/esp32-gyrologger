@@ -8,7 +8,7 @@ extern "C" {
 #include <freertos/task.h>
 #include <freertos/queue.h>
 
-#include "lib/compression.hpp"
+
 #include <emscripten.h>
 #include <sys/types.h>
 #include <sys/stat.h>
